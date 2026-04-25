@@ -2,7 +2,8 @@
 
 **ArenaFlow** is a next-generation real-time venue intelligence platform optimized for the **Narendra Modi Stadium** in Ahmedabad. It serves as a unified digital twin, providing high-fidelity telemetry, predictive crowd analytics, and tactical command capabilities to ensure seamless flow and safety for tens of thousands of spectators.
 
-![ArenaFlow Analytics](snapshots/image_1.png)
+<img width="1919" height="890" alt="Screenshot 2026-04-25 203110" src="https://github.com/user-attachments/assets/a20d38c2-ff13-4fa5-91f3-eb39a096cd1e" />
+
 
 ---
 
@@ -18,9 +19,9 @@ The central nervous system of the stadium. Operations staff monitor the "Global 
 *   **Key Tasks**: Incident resolution, staff dispatching, global alerts, and AI-assisted egress planning.
 *   **Workflow**: Monitors live density heatmaps -> Identifies "Critical" sectors -> Dispatches nearby Security/Medical units -> Broadcasts evacuation or rerouting instructions.
 
-![Operations Command Center](snapshots/image_3.png)
+<img width="1909" height="893" alt="Screenshot 2026-04-25 203147" src="https://github.com/user-attachments/assets/6303da1b-1fa0-44b4-b86e-adc45fcd24bc" />
+<img width="1913" height="877" alt="Screenshot 2026-04-25 203249" src="https://github.com/user-attachments/assets/35d1c7a9-2103-4c9d-847a-61a196a2f562" />
 
-![Tactical Map Analysis](snapshots/image4.png)
 
 ### 2. Field Units (Staff View)
 Localized tactical nodes for ground personnel (Security, Medical, Facility).
@@ -32,7 +33,7 @@ A personal guidance system designed to minimize wait times and optimize the stad
 *   **Key Tasks**: Finding the fastest exits, checking restroom/food stall wait times, and receiving real-time safety updates.
 *   **Workflow**: Views current seating area density -> Gets AI-recommended exit route -> Confirms transit signal (telemetry) back to Ops -> Reaches destination via least-congested path.
 
-![Attendee View](snapshots/image_2.png)
+<img width="1909" height="880" alt="Screenshot 2026-04-25 203130" src="https://github.com/user-attachments/assets/6d73deb9-2413-43e4-8ceb-539ab9db2c58" />
 
 ---
 
