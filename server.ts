@@ -383,9 +383,13 @@ async function startServer() {
     io.emit('alerts-update', alerts);
 
     // Sync to Firestore for production persistence
-    // Increased interval to 10 seconds to avoid quota exhaustion
-    if (state.matchMinute % 5 === 0) {
-      persistToFirestore();
+    // Increased interval to 60 seconds (every 30 ticks) to avoid quota exhaustion on free tier
+    if (state.matchMinute % 30 === 0) {
+      persistToFirestore().catch(e => {
+        if (e.message?.includes('Quota exceeded')) {
+          console.error('Firestore Quota Exceeded. Persistence paused until reset.');
+        }
+      });
     }
   }, 2000);
 

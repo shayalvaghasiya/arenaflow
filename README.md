@@ -2,6 +2,8 @@
 
 **ArenaFlow** is a next-generation real-time venue intelligence platform optimized for the **Narendra Modi Stadium** in Ahmedabad. It serves as a unified digital twin, providing high-fidelity telemetry, predictive crowd analytics, and tactical command capabilities to ensure seamless flow and safety for tens of thousands of spectators.
 
+![ArenaFlow Landing](image_0.png)
+
 ---
 
 ### 🌐 Live Application
@@ -16,6 +18,8 @@ The central nervous system of the stadium. Operations staff monitor the "Global 
 *   **Key Tasks**: Incident resolution, staff dispatching, global alerts, and AI-assisted egress planning.
 *   **Workflow**: Monitors live density heatmaps -> Identifies "Critical" sectors -> Dispatches nearby Security/Medical units -> Broadcasts evacuation or rerouting instructions.
 
+![Operations Command Center](image_2.png)
+
 ### 2. Field Units (Staff View)
 Localized tactical nodes for ground personnel (Security, Medical, Facility).
 *   **Key Tasks**: Reporting field incidents, acknowledging command orders, and managing sector-level entry/exit through tactical overrides.
@@ -26,6 +30,8 @@ A personal guidance system designed to minimize wait times and optimize the stad
 *   **Key Tasks**: Finding the fastest exits, checking restroom/food stall wait times, and receiving real-time safety updates.
 *   **Workflow**: Views current seating area density -> Gets AI-recommended exit route -> Confirms transit signal (telemetry) back to Ops -> Reaches destination via least-congested path.
 
+![Attendee View](image_1.png)
+
 ---
 
 ## 🚀 Core Features
@@ -35,6 +41,8 @@ A personal guidance system designed to minimize wait times and optimize the stad
 *   **Interactive Tiers**: Multi-level navigation across tiers, hospitality boxes, and concourses.
 *   **Dynamic Scanning HUD**: Tactical overlay for granular monitoring of stadium nodes.
 *   **Real-time Geo-Presence**: Live tracking of security, medical, and facility units across all views.
+
+![Tactical Map Analysis](image_3.png)
 
 ### 📊 Precision Telemetry & Analytics
 *   **Live Population Metrics**: Dynamic spectator counter synced via real-time socket nodes.
