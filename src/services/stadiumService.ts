@@ -22,5 +22,7 @@ export const stadiumService = {
     const res = await fetch('/api/state');
     return res.json();
   },
-  getAIAnalysis: () => firebaseStadiumService.getAIAnalysis()
+  getAIAnalysis: () => firebaseStadiumService.getAIAnalysis(),
+  confirmTransit: (gateId: string, gateName: string) => firebaseStadiumService.confirmTransit(gateId, gateName),
+  onTransitUpdate: (callback: (transits: any[]) => void) => firebaseStadiumService.onTransitUpdate(callback)
 };

@@ -22,7 +22,7 @@ export const StadiumMap: React.FC<StadiumMapProps> = ({
   const [internalShowHeatmap, setInternalShowHeatmap] = React.useState(initialShowHeatmap);
   const [hoveredZoneId, setHoveredZoneId] = React.useState<string | null>(null);
   const [showLegend, setShowLegend] = React.useState(false);
-  const zones = Object.values(state.zones) as Zone[];
+  const zones = Object.values(state.zones || {}) as Zone[];
 
   const getZoneColor = (zone: Zone) => {
     if (!internalShowHeatmap) return 'fill-slate-800 hover:fill-slate-700';
@@ -134,7 +134,7 @@ export const StadiumMap: React.FC<StadiumMapProps> = ({
                 <div>
                   <p className="text-[8px] font-black uppercase text-white/50 tracking-widest leading-none mb-1">Est. Wait</p>
                   <p className="text-[12px] font-black text-white font-mono leading-none tracking-tighter">
-                    {state.waitTimes[hoveredZoneId]?.minutes || Math.round((state.zones[hoveredZoneId].currentCount / state.zones[hoveredZoneId].capacity) * 15)}m
+                    {state.waitTimes?.[hoveredZoneId]?.minutes || Math.round((state.zones[hoveredZoneId].currentCount / state.zones[hoveredZoneId].capacity) * 15)}m
                   </p>
                 </div>
               )}
@@ -256,8 +256,8 @@ export const StadiumMap: React.FC<StadiumMapProps> = ({
 
         {/* Neighbors (System Sync Lines) & Traffic Flow */}
         {zones.map(zone => 
-          zone.neighbors.map(nId => {
-            const neighbor = state.zones[nId];
+          (zone.neighbors || []).map(nId => {
+            const neighbor = state.zones?.[nId];
             if (!neighbor) return null;
             const isHeavy = (zone.currentCount / zone.capacity) > 0.7 || (neighbor.currentCount / neighbor.capacity) > 0.7;
             

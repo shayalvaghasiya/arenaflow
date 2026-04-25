@@ -9,7 +9,8 @@ import {
   where,
   getDocs,
   setDoc,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { StadiumState, Zone, Alert, StaffMember, StaffInstruction, WaitTime } from '../types';
@@ -48,7 +49,17 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 class FirebaseStadiumService {
   private stateListeners: ((state: StadiumState) => void)[] = [];
   private alertListeners: ((alerts: Alert[]) => void)[] = [];
-  private currentState: Partial<StadiumState> = {};
+  private transitListeners: ((transits: any[]) => void)[] = [];
+  private currentState: StadiumState = {
+    zones: {},
+    staff: [],
+    waitTimes: {},
+    instructions: [],
+    eventStatus: 'pre-match',
+    matchMinute: 0,
+    totalAttendees: 0,
+    timestamp: Date.now()
+  };
 
   constructor() {
     this.initListeners();
@@ -92,12 +103,22 @@ class FirebaseStadiumService {
       });
       this.alertListeners.forEach(l => l(alerts));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'alerts'));
+
+    // Listen to transit confirmations
+    onSnapshot(collection(db, 'transit_confirmations'), (snap) => {
+      const transits: any[] = [];
+      snap.forEach(doc => {
+        transits.push({ id: doc.id, ...doc.data() });
+      });
+      this.transitListeners.forEach(l => l(transits));
+    }, (error) => {
+      // Non-critical if this fails
+      console.warn('Transit confirmations listener failed - likely Firebase missing');
+    });
   }
 
   private triggerUpdate() {
-    if (this.currentState.zones && this.currentState.staff) {
-      this.stateListeners.forEach(l => l(this.currentState as StadiumState));
-    }
+    this.stateListeners.forEach(l => l(this.currentState));
   }
 
   onStateUpdate(callback: (state: StadiumState) => void) {
@@ -111,6 +132,13 @@ class FirebaseStadiumService {
     this.alertListeners.push(callback);
     return () => {
       this.alertListeners = this.alertListeners.filter(l => l !== callback);
+    };
+  }
+
+  onTransitUpdate(callback: (transits: any[]) => void) {
+    this.transitListeners.push(callback);
+    return () => {
+      this.transitListeners = this.transitListeners.filter(l => l !== callback);
     };
   }
 
@@ -167,6 +195,28 @@ class FirebaseStadiumService {
       timestamp: Date.now()
     };
     await setDoc(doc(db, 'alerts', id), alert);
+  }
+
+  async confirmTransit(gateId: string, gateName: string) {
+    const confirmation = {
+      gateId,
+      gateName,
+      userId: auth.currentUser?.uid || 'anonymous',
+      timestamp: { seconds: Math.floor(Date.now() / 1000) },
+      id: `local-${Date.now()}`
+    };
+
+    // Always trigger local listeners for immediate feedback in same-session scenarios
+    this.transitListeners.forEach(l => l([confirmation, ...(this.transitListeners[0] as any || [])]));
+
+    try {
+      await addDoc(collection(db, 'transit_confirmations'), {
+        ...confirmation,
+        timestamp: serverTimestamp(),
+      });
+    } catch (error) {
+      console.warn('Transit confirmation logged locally only (Firebase likely not configured)');
+    }
   }
 
   async getAIAnalysis() {

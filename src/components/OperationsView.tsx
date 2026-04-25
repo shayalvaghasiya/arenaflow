@@ -37,8 +37,19 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ state, alerts, o
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isAIAnalyzing, setIsAIAnalyzing] = useState(false);
   const [aiReport, setAIReport] = useState<{ summary: string, recommendations: any[] } | null>(null);
+  const [transitFeeds, setTransitFeeds] = useState<any[]>([]);
 
-  const zones = Object.values(state.zones) as Zone[];
+  useEffect(() => {
+    // Listen for transit confirmations
+    const unsubscribe = stadiumService.onTransitUpdate((data) => {
+      // Sort by timestamp if available, most recent first
+      const sorted = [...data].sort((a,b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+      setTransitFeeds(sorted.slice(0, 5)); // Keep last 5
+    });
+    return unsubscribe;
+  }, []);
+
+  const zones = Object.values(state.zones || {}) as Zone[];
   const totalPeople = zones.reduce((sum, z) => sum + z.currentCount, 0);
   const totalCapacity = zones.reduce((sum, z) => sum + z.capacity, 0);
   const avgDensity = totalCapacity > 0 ? (totalPeople / totalCapacity) * 100 : 0;
@@ -323,20 +334,106 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ state, alerts, o
                 </div>
 
                 {/* Bottom Ops Shelf */}
-                <div className="h-48 flex gap-6 shrink-0">
+                <div className="h-64 flex gap-6 shrink-0">
                   <div className="flex-1 rounded-xl bg-slate-900 border border-slate-800 p-4 overflow-hidden flex flex-col shadow-xl">
-                    <h3 className="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">Smart Routing Engine</h3>
-                    <div className="space-y-2 flex-1 overflow-y-auto pr-1">
-                      <div className="flex items-center gap-3 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-lg hover:bg-indigo-500/10 transition-colors">
-                        <div className="p-1.5 bg-indigo-600 rounded text-white shadow-lg shadow-indigo-600/20">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-black uppercase text-white truncate italic">Reroute Proposal // Gate_4 ➔ Gate_1</p>
-                          <p className="text-[9px] text-slate-500 font-bold mt-0.5">High friction at North junction. West capacity at 32%.</p>
-                        </div>
-                        <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[9px] rounded uppercase shadow-lg shadow-indigo-600/20 transition-all active:scale-95">EXECUTE</button>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">AI Intelligence & Routing</h3>
+                      <div className="flex items-center gap-2">
+                        {transitFeeds.length > 0 && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded">
+                            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-ping" />
+                            <span className="text-[7px] font-black text-emerald-400 uppercase tracking-tighter">Live Egress Signal</span>
+                          </div>
+                        )}
+                        <button 
+                          onClick={runAIAnalysis}
+                          disabled={isAIAnalyzing}
+                          className={cn(
+                            "text-[8px] font-black uppercase px-2 py-1 rounded transition-all",
+                            isAIAnalyzing ? "bg-indigo-500/10 text-indigo-400 animate-pulse" : "bg-indigo-600 text-white shadow-lg"
+                          )}
+                        >
+                          {isAIAnalyzing ? 'Updating...' : 'Sync AI'}
+                        </button>
                       </div>
+                    </div>
+                    
+                    {/* Live Transit Ticker */}
+                    <AnimatePresence>
+                      {transitFeeds.length > 0 && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="mb-4 space-y-1"
+                        >
+                          {transitFeeds.slice(0, 2).map((t, i) => (
+                            <motion.div 
+                              key={t.id || i}
+                              initial={{ x: -10, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              className="flex items-center justify-between text-[8px] font-bold uppercase tracking-tighter bg-slate-950/30 p-1.5 rounded border border-white/5"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Users className="w-2.5 h-2.5 text-indigo-400" />
+                                <span className="text-slate-300">USER_SIGNAL: CONFIRMED ROUTE ➔</span>
+                                <span className="text-emerald-400 font-black italic">{t.gateName || 'GATE'}</span>
+                              </div>
+                              <span className="text-slate-600">{new Date(t.timestamp?.seconds * 1000 || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
+                      {aiReport ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 p-2 bg-indigo-500/10 border border-indigo-500/20 rounded text-indigo-400 animate-pulse">
+                            <Radio className="w-3 h-3" />
+                            <p className="text-[10px] font-black uppercase tracking-tight">{aiReport.summary}</p>
+                          </div>
+                          {aiReport.recommendations.map((rec, i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 bg-slate-950/50 border border-slate-800 rounded-lg hover:border-indigo-500/30 transition-colors">
+                              <div className={cn(
+                                "p-1.5 rounded text-white shadow-lg",
+                                rec.priority === 'high' ? 'bg-rose-600' : 'bg-amber-600'
+                              )}>
+                                <TrendingUp className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[10px] font-black uppercase text-white truncate italic">{rec.title}</p>
+                                <p className="text-[9px] text-slate-500 font-bold mt-0.5">{rec.action}</p>
+                              </div>
+                              <button 
+                                onClick={(e) => {
+                                  const btn = e.currentTarget;
+                                  const originalText = btn.innerText;
+                                  btn.innerText = 'DISPATCHED';
+                                  btn.className = cn(btn.className, "bg-emerald-600 shadow-emerald-500/50");
+                                  setTimeout(() => {
+                                    btn.innerText = originalText;
+                                    btn.className = btn.className.replace("bg-emerald-600 shadow-emerald-500/50", "bg-indigo-600");
+                                  }, 2000);
+                                  
+                                  // Dispatch a system instruction if it's high priority
+                                  if (rec.priority === 'high') {
+                                    stadiumService.dispatchInstruction('S-1', `AI ROUTING: ${rec.action}`);
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[9px] rounded uppercase shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
+                              >
+                                EXECUTE
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center opacity-20">
+                          <Radio className="w-8 h-8 mb-2" />
+                          <p className="text-[9px] font-black uppercase">Run Sync for Routing Proposals</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -380,7 +477,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ state, alerts, o
                    </div>
                    <div className="p-4 flex-1 overflow-y-auto space-y-5 custom-scrollbar">
                      {zones.filter(z => z.type === 'food' || z.type === 'gate').map(z => {
-                       const wait = state.waitTimes[z.id];
+                       const wait = state.waitTimes ? state.waitTimes[z.id] : null;
                        return (
                         <div key={z.id}>
                           <div className="flex justify-between text-[11px] mb-1.5 font-bold uppercase tracking-tight">
@@ -473,7 +570,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ state, alerts, o
                                 {member.role}
                               </span>
                             </td>
-                            <td className="py-4 font-black uppercase text-slate-300">{state.zones[member.zoneId]?.name || member.zoneId}</td>
+                            <td className="py-4 font-black uppercase text-slate-300">{state.zones?.[member.zoneId]?.name || member.zoneId}</td>
                             <td className="py-4">
                               <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />

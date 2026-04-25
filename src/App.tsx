@@ -183,11 +183,11 @@ export default function App() {
                     
                     <div className="flex items-center gap-6 opacity-30">
                        <div className="flex items-center gap-2">
-                         <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                         <span className="text-[9px] font-black uppercase tracking-widest">Network_Online</span>
+                         <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                         <span className="text-[9px] font-black uppercase tracking-widest">AI_Routing_Live</span>
                        </div>
                        <div className="w-1 h-1 rounded-full bg-slate-800" />
-                       <div className="flex items-center gap-2">
+                       <div className="flex items-center gap-2 text-indigo-400">
                          <span className="text-[9px] font-black uppercase tracking-widest">v2.4.0_Stable</span>
                        </div>
                     </div>

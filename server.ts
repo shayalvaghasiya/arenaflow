@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 
 import { createServer as createViteServer } from 'vite';
 import { StadiumState, Zone, Alert } from './src/types';
-import { db } from './src/server/db';
+import { db, firebaseConfig } from './src/server/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -140,7 +140,16 @@ async function startServer() {
         console.log('Firestore initialization successful.');
         return; // Success, exit retry loop
       } catch (error: any) {
-        console.error(`Attempt ${i + 1} failed:`, error.message);
+        if (error.message?.includes('PERMISSION_DENIED') || error.code === 7) {
+          console.error('CRITICAL: Firestore PERMISSION_DENIED during initialization.');
+          console.error('Database ID:', firebaseConfig.dbId);
+          console.error('Project ID:', firebaseConfig.projectId);
+          console.error('Service Account Email:', firebaseConfig.serviceAccountEmail);
+          console.error('HINT: Ensure this email has "Cloud Datastore User" and "Firebase Admin" roles at https://console.cloud.google.com/iam-admin/iam');
+        } else {
+          console.error(`Attempt ${i + 1} failed:`, error.message);
+        }
+        
         if (i === retries - 1) {
           console.error('CRITICAL: All Firestore sync attempts failed. Operating in LOCAL-ONLY mode.');
         } else {
@@ -161,31 +170,45 @@ async function startServer() {
          return;
        }
        const batch = db.batch();
+       
        // Update metadata
-       batch.update(db.collection('config').doc('stadium'), {
+       const stadiumDocRef = db.collection('config').doc('stadium');
+       batch.set(stadiumDocRef, {
          eventStatus: state.eventStatus,
          matchMinute: state.matchMinute,
          totalAttendees: state.totalAttendees,
          timestamp: state.timestamp
-       });
+       }, { merge: true });
+       
        // Update zones
        Object.values(state.zones).forEach(z => {
          batch.set(db.collection('zones').doc(z.id), z, { merge: true });
        });
+       
        // Update staff
        state.staff.forEach(s => {
          batch.set(db.collection('staff').doc(s.id), s, { merge: true });
        });
+       
        // Sync alerts
        const alertsRef = db.collection('alerts');
+       // Note: deleting all alerts before resync might be expensive, 
+       // but for this small simulation it ensures state matches.
        const oldAlerts = await alertsRef.get();
        oldAlerts.forEach(doc => batch.delete(doc.ref));
        alerts.forEach(a => batch.set(alertsRef.doc(a.id), a));
 
        await batch.commit();
        console.log(`Firestore Sync Successful [${new Date().toLocaleTimeString()}]`);
-     } catch (e) {
-       console.error('Firestore sync error:', e);
+     } catch (e: any) {
+       if (e.message?.includes('PERMISSION_DENIED') || e.code === 7) {
+         console.error('CRITICAL: Firestore PERMISSION_DENIED detected during sync.');
+         console.error('Target Database:', firebaseConfig.dbId);
+         console.error('Target Project:', firebaseConfig.projectId);
+         console.error('Active Identity:', firebaseConfig.serviceAccountEmail);
+       } else {
+         console.error('Firestore sync error:', e);
+       }
      }
   };
 

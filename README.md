@@ -21,8 +21,11 @@ ArenaFlow is a real-time venue intelligence platform optimized for the **Narendr
 - **Tactical Feedback**: Direct communication line from staff nodes to the central ops terminal.
 
 ### 4. Fan Intelligence (Attendee View)
+- **AI Routing Advisory**: Dynamic briefings recommending optimal exit gates based on live load balancing.
+- **Route Telemetry Confirmation**: A feedback loop where fans confirm their route, sending "Egress Signals" back to the Ops Center for predictive flow analysis.
 - **Pathfinder Routing**: Find the quickest gates and facilities based on live crowding data.
-- **Facility Status**: Real-time occupancy alerts for restrooms and concession stands.
+- **Facility Status**: Real-time occupancy alerts for restrooms and concession stands with active wait-time trackers.
+- **Interactive Heatmap**: Personal view of area density to help fans navigate to quieter sectors.
 - **Event Feed**: Global stadium alerts for match updates and safety information.
 
 ## 🛠 Tech Stack

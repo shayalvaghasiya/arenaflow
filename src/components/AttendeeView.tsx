@@ -19,11 +19,44 @@ interface AttendeeViewProps {
   onExit: () => void;
 }
 
+import { firebaseStadiumService } from '../services/firebaseService';
+
 export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => {
   const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [activeTab, setActiveTab] = useState<'map' | 'facilities' | 'routing'>('map');
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [hasConfirmed, setHasConfirmed] = useState(false);
 
-  const facilities = (Object.values(state.zones) as Zone[]).filter(z => z.type === 'food' || z.type === 'restroom' || z.type === 'gate');
+  const zones = Object.values(state.zones) as Zone[];
+  const facilities = zones.filter(z => z.type === 'food' || z.type === 'restroom' || z.type === 'gate');
+
+  const gates = zones.filter(z => z.type === 'gate');
+  const getWaitTime = (zoneId: string) => {
+    const zone = state.zones[zoneId];
+    if (!zone) return 0;
+    return state.waitTimes?.[zoneId]?.minutes || Math.round((zone.currentCount / zone.capacity) * 15);
+  };
+
+  const sortedGates = [...gates].sort((a, b) => getWaitTime(a.id) - getWaitTime(b.id));
+  const recommendedGate = sortedGates[0];
+  const worstGate = sortedGates[sortedGates.length - 1];
+
+  const worstGateLoad = worstGate ? Math.round((worstGate.currentCount / worstGate.capacity) * 100) : 0;
+  const timeSaved = worstGate && recommendedGate ? getWaitTime(worstGate.id) - getWaitTime(recommendedGate.id) : 0;
+
+  const handleConfirmTransit = async () => {
+    if (!recommendedGate || isConfirming || hasConfirmed) return;
+    
+    setIsConfirming(true);
+    try {
+      await firebaseStadiumService.confirmTransit(recommendedGate.id, recommendedGate.name);
+      setHasConfirmed(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50 text-slate-900 font-sans uppercase">
@@ -53,7 +86,23 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
               exit={{ opacity: 0, y: -10 }}
               className="p-4 space-y-4 h-full flex flex-col"
             >
-              <div className="bg-slate-900 rounded-2xl p-1 shadow-2xl border border-slate-800 flex-1 min-h-[450px]">
+              {/* AI Routing Briefing */}
+              {recommendedGate && worstGate && (
+                <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center gap-4 shadow-xl shrink-0 overflow-hidden relative">
+                  <div className="absolute inset-0 bg-indigo-600/5 animate-pulse pointer-events-none" />
+                  <div className="shrink-0 w-8 h-8 rounded bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40 relative z-10">
+                    <Info className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="relative z-10">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">AI Routing Advisory</p>
+                    <p className="text-[11px] text-slate-300 leading-tight font-medium">
+                      {worstGate.name} is at {worstGateLoad}%. Use <span className="text-emerald-400 font-bold italic">{recommendedGate.name}</span> for faster egress. {timeSaved > 0 && `(Saved time: ${timeSaved}m)`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-slate-900 rounded-2xl p-1 shadow-2xl border border-slate-800 flex-1 min-h-[500px]">
                 <StadiumMap 
                   state={state} 
                   onZoneClick={setSelectedZone} 
@@ -152,17 +201,19 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
               </div>
 
               {/* Smart Suggestion */}
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex gap-4 shadow-xl">
-                <div className="shrink-0 w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40">
-                  <Info className="w-5 h-5 text-white" />
+              {recommendedGate && worstGate && (
+                <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex gap-4 shadow-xl">
+                  <div className="shrink-0 w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40">
+                    <Info className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">AI Routing Update</p>
+                    <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                      {worstGate.name} is currently at <span className="text-rose-400 font-bold">{worstGateLoad}% load</span>. We recommend using <span className="text-emerald-400 font-bold italic">{recommendedGate.name}</span> for immediate exit (approx. {getWaitTime(recommendedGate.id)}m wait).
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">AI Routing Update</p>
-                  <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                    Gate 3 (North) is currently at <span className="text-rose-400 font-bold">92% load</span>. We recommend using <span className="text-emerald-400 font-bold italic">Gate 2 (West)</span> for immediate exit (approx. 2m wait).
-                  </p>
-                </div>
-              </div>
+              )}
             </motion.div>
           )}
 
@@ -225,20 +276,45 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Optimized for shortest wait time</p>
                 
                 <div className="space-y-3">
-                  {(Object.values(state.zones) as Zone[]).filter(z => z.type === 'gate').map(gate => (
-                    <div key={gate.id} className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/5">
-                      <span className="text-xs font-black uppercase tracking-tight opacity-70">{gate.name}</span>
+                  {sortedGates.map((gate, i) => (
+                    <div key={gate.id} className={cn(
+                      "flex items-center justify-between p-3 rounded-lg border transition-all",
+                      i === 0 ? "border-emerald-500/30 bg-emerald-500/5 shadow-inner" : "border-white/5 bg-white/5 opacity-60"
+                    )}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-black uppercase tracking-tight">{gate.name}</span>
+                        {i === 0 && <span className="text-[8px] px-1.5 py-0.5 bg-emerald-500 text-white rounded font-black uppercase">BEST</span>}
+                      </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-[10px] font-mono text-emerald-400">{state.waitTimes[gate.id]?.minutes || 0}m Wait</span>
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-mono text-emerald-400">{getWaitTime(gate.id)}m Wait</span>
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full",
+                          i === 0 ? "bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse" : "bg-slate-700"
+                        )} />
                       </div>
                     </div>
-                  )).slice(0, 2)}
+                  )).slice(0, 3)}
                 </div>
 
-                <button className="w-full mt-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
-                  Confirm Transit Route
+                <button 
+                  onClick={handleConfirmTransit}
+                  disabled={isConfirming || hasConfirmed}
+                  className={cn(
+                    "w-full mt-6 py-4 rounded-xl font-black uppercase text-xs tracking-widest transition-all shadow-xl active:scale-95 flex items-center justify-center gap-2",
+                    hasConfirmed 
+                      ? "bg-emerald-600 text-white shadow-emerald-600/20" 
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/20",
+                    isConfirming && "opacity-70 animate-pulse"
+                  )}
+                >
+                  {isConfirming ? 'Processing Signal...' : hasConfirmed ? 'Route Acknowledged' : 'Confirm Transit Route'}
+                  {hasConfirmed && <CircleDot className="w-4 h-4" />}
                 </button>
+                {hasConfirmed && (
+                  <p className="mt-3 text-[9px] font-bold text-emerald-400 uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-1">
+                    Telemetry Shared with Ops Center
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
