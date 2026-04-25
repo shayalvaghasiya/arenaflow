@@ -13,7 +13,7 @@ import {
   Stethoscope,
   Info,
   Flame,
-  Activity,
+  Activity as ActivityIcon,
   AlertTriangle,
   Key
 } from 'lucide-react';
@@ -146,7 +146,7 @@ export const StaffView: React.FC<StaffViewProps> = ({ state, onLogout }) => {
                   className="p-6 bg-slate-900 border border-white/5 rounded-xl flex flex-col items-center gap-3 active:scale-95 transition-all hover:bg-slate-800"
                 >
                   <div className="p-3 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                    <Activity className="w-6 h-6 text-emerald-500" />
+                    <ActivityIcon className="w-6 h-6 text-emerald-500" />
                   </div>
                   <span className="text-[9px] font-black tracking-widest">Medical</span>
                 </button>
@@ -182,14 +182,25 @@ export const StaffView: React.FC<StaffViewProps> = ({ state, onLogout }) => {
                 <p className="text-[8px] font-black text-slate-600 uppercase">Authentication Overrides</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button 
-                    onClick={() => alert('Access Granted: Manual Override active for 30s')}
+                    onClick={() => {
+                      const currentZone = state.zones[staffMember?.zoneId || ''];
+                      if (currentZone?.type === 'gate') {
+                        stadiumService.confirmTransit(currentZone.id, currentZone.name);
+                        alert(`ACCESS GRANTED: Manual Override active for 30s`);
+                      } else {
+                        alert('Override unsuccessful: Selected sector is not a gate.');
+                      }
+                    }}
                     className="flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
                   >
                     <Key className="w-3 h-3" />
                     Open Gate
                   </button>
                   <button 
-                    onClick={() => alert('Sector Lockdown initiated')}
+                    onClick={() => {
+                      stadiumService.broadcastAlert(`LOCKDOWN: Sector ${state.zones[staffMember?.zoneId || '']?.name || 'UNKNOWN'} SECURED`, 'critical');
+                      alert('Sector Lockdown initiated');
+                    }}
                     className="flex items-center justify-center gap-2 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-500 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
                   >
                     <Shield className="w-3 h-3" />

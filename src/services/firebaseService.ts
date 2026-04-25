@@ -219,6 +219,61 @@ class FirebaseStadiumService {
     }
   }
 
+  async broadcastAlert(message: string, severity: 'warning' | 'critical') {
+    const id = `alert-${Date.now()}`;
+    const alert: Alert = {
+      id,
+      message,
+      severity,
+      timestamp: Date.now(),
+      zoneId: 'global'
+    };
+    await setDoc(doc(db, 'alerts', id), alert);
+  }
+
+  async resetSimulation() {
+    // Reset all zone counts to a baseline (e.g. 10%)
+    const zonesSnap = await getDocs(collection(db, 'zones'));
+    const batch: Promise<any>[] = [];
+    zonesSnap.forEach(zDoc => {
+      const data = zDoc.data();
+      batch.push(setDoc(zDoc.ref, { 
+        ...data, 
+        currentCount: Math.floor(data.capacity * 0.1) 
+      }));
+    });
+    await Promise.all(batch);
+  }
+
+  async recallAllStaff() {
+    // Move all staff to a central zone (e.g. HQ)
+    // For this simulation, we'll just move them to 'zone-main-concourse'
+    const hqZoneId = 'zone-main-concourse';
+    const staffSnap = await getDocs(collection(db, 'staff'));
+    const batch: Promise<any>[] = [];
+    staffSnap.forEach(sDoc => {
+      batch.push(setDoc(sDoc.ref, { 
+        ...sDoc.data(), 
+        zoneId: hqZoneId,
+        status: 'on-break'
+      }));
+    });
+    await Promise.all(batch);
+  }
+
+  async reinforceStaff() {
+    // Set all staff to 'active'
+    const staffSnap = await getDocs(collection(db, 'staff'));
+    const batch: Promise<any>[] = [];
+    staffSnap.forEach(sDoc => {
+      batch.push(setDoc(sDoc.ref, { 
+        ...sDoc.data(), 
+        status: 'active'
+      }));
+    });
+    await Promise.all(batch);
+  }
+
   async getAIAnalysis() {
     const res = await fetch('/api/analyze-crowd', { method: 'POST' });
     return res.json();

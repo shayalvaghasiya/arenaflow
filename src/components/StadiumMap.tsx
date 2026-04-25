@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Users, AlertTriangle, Activity } from 'lucide-react';
+import { MapPin, Users, AlertTriangle, Activity as ActivityIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { StadiumState, Zone } from '../types';
 
@@ -428,7 +428,7 @@ export const StadiumMap: React.FC<StadiumMapProps> = ({
           >
             <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">NMS_Telemetry</span>
-              <Activity className="w-3 h-3 text-indigo-500" />
+              <ActivityIcon className="w-3 h-3 text-indigo-500" />
             </div>
             {/* Legend Content */}
             <div className="space-y-2">
@@ -457,7 +457,7 @@ export const StadiumMap: React.FC<StadiumMapProps> = ({
         onClick={() => setShowLegend(!showLegend)}
         className="absolute top-4 right-4 z-30 p-2 bg-slate-900/80 border border-white/10 rounded-lg text-slate-400 md:hidden"
       >
-        <Activity className="w-4 h-4" />
+        <ActivityIcon className="w-4 h-4" />
       </button>
     </div>
   );

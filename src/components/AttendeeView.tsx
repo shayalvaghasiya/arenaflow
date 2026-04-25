@@ -10,7 +10,8 @@ import {
   Map as MapIcon,
   ChevronRight,
   Info,
-  CircleDot
+  CircleDot,
+  Activity as ActivityIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -27,17 +28,17 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
   const [isConfirming, setIsConfirming] = useState(false);
   const [hasConfirmed, setHasConfirmed] = useState(false);
 
-  const zones = Object.values(state.zones) as Zone[];
-  const facilities = zones.filter(z => z.type === 'food' || z.type === 'restroom' || z.type === 'gate');
+  const zones = Object.values(state?.zones || {}) as Zone[];
+  const facilities = zones?.filter(z => z.type === 'food' || z.type === 'restroom' || z.type === 'gate');
 
-  const gates = zones.filter(z => z.type === 'gate');
+  const gates = zones?.filter(z => z.type === 'gate') || [];
   const getWaitTime = (zoneId: string) => {
-    const zone = state.zones[zoneId];
+    const zone = state.zones?.[zoneId];
     if (!zone) return 0;
     return state.waitTimes?.[zoneId]?.minutes || Math.round((zone.currentCount / zone.capacity) * 15);
   };
 
-  const sortedGates = [...gates].sort((a, b) => getWaitTime(a.id) - getWaitTime(b.id));
+  const sortedGates = [...(gates || [])].sort((a, b) => getWaitTime(a.id) - getWaitTime(b.id));
   const recommendedGate = sortedGates[0];
   const worstGate = sortedGates[sortedGates.length - 1];
 
@@ -61,18 +62,20 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
   return (
     <div className="flex flex-col h-full bg-slate-50 text-slate-900 font-sans uppercase">
       {/* Header */}
-      <header className="p-6 bg-white border-b border-slate-200 shrink-0 shadow-sm flex justify-between items-center">
+      <header className="p-4 md:p-6 bg-white border-b border-slate-200 shrink-0 shadow-sm flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black tracking-tighter text-slate-950 uppercase italic">Arena<span className="text-indigo-600">Flow</span></h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Venue Assistant // LIVE</p>
+          <h1 className="text-xl md:text-2xl font-black tracking-tighter text-slate-950 uppercase italic">Arena<span className="text-indigo-600">Flow</span></h1>
+          <p className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Venue Assistant // LIVE</p>
         </div>
-        <button 
-          onClick={onExit}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2 border border-slate-200 shadow-sm active:scale-95"
-        >
-          <DoorOpen className="w-4 h-4" />
-          Exit
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onExit}
+            className="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 font-black uppercase text-[8px] md:text-[10px] tracking-widest text-slate-600 rounded-lg hover:bg-slate-200 transition-colors flex items-center gap-2 border border-slate-200"
+          >
+            <DoorOpen className="w-3 md:w-4 h-3 md:h-4" />
+            Exit
+          </button>
+        </div>
       </header>
 
       {/* Main Content Areas */}
@@ -86,23 +89,58 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
               exit={{ opacity: 0, y: -10 }}
               className="p-4 space-y-4 h-full flex flex-col"
             >
-              {/* AI Routing Briefing */}
+              {/* AI Routing Briefing - Tactical Style */}
               {recommendedGate && worstGate && (
-                <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center gap-4 shadow-xl shrink-0 overflow-hidden relative">
+                <div className="bg-slate-950 border border-indigo-500/30 p-4 rounded-2xl flex items-center gap-4 shadow-2xl shrink-0 overflow-hidden relative group">
                   <div className="absolute inset-0 bg-indigo-600/5 animate-pulse pointer-events-none" />
-                  <div className="shrink-0 w-8 h-8 rounded bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40 relative z-10">
-                    <Info className="w-4 h-4 text-white" />
+                  <div className="shrink-0 w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/40 relative z-10 border border-white/20">
+                    <Navigation className="w-5 h-5 text-white animate-bounce" />
                   </div>
-                  <div className="relative z-10">
-                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">AI Routing Advisory</p>
-                    <p className="text-[11px] text-slate-300 leading-tight font-medium">
-                      {worstGate.name} is at {worstGateLoad}%. Use <span className="text-emerald-400 font-bold italic">{recommendedGate.name}</span> for faster egress. {timeSaved > 0 && `(Saved time: ${timeSaved}m)`}
+                  <div className="relative z-10 flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] leading-none">Cortex Routing Engine</p>
+                      <span className="text-[8px] font-mono text-emerald-500 bg-emerald-500/10 px-1 rounded">OPTIMIZED</span>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-tight font-bold italic uppercase tracking-tighter">
+                      {worstGate.name} CONGESTED ({worstGateLoad}%). REDIRECT TO <span className="text-emerald-400 border-b border-emerald-500/40">{recommendedGate.name}</span>.
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="bg-slate-900 rounded-2xl p-1 shadow-2xl border border-slate-800 flex-1 min-h-[500px]">
+              <div className="bg-slate-950 rounded-2xl p-1 shadow-2xl border border-slate-800 flex-1 min-h-[350px] relative overflow-hidden ring-1 ring-white/5">
+                {/* Tactical Overlays */}
+                <div className="absolute inset-0 pointer-events-none z-10 p-5 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <div className="px-3 py-2 bg-slate-900/90 backdrop-blur-md rounded-lg border border-white/10 shadow-2xl">
+                      <p className="text-[8px] font-black text-slate-500 uppercase leading-none mb-1 tracking-widest">Venue Telemetry</p>
+                      <p className="text-[11px] font-black italic text-indigo-400 leading-none uppercase">Sector {selectedZone?.id.split('-')[1] || 'ALL'}</p>
+                    </div>
+                    
+                    <div className="px-3 py-2 bg-slate-900/90 backdrop-blur-md rounded-lg border border-white/10 shadow-2xl text-right">
+                      <p className="text-[8px] font-black text-slate-500 uppercase leading-none mb-1 tracking-widest">Zone Status</p>
+                      <p className={cn(
+                        "text-[11px] font-black italic leading-none uppercase",
+                        selectedZone && (selectedZone.currentCount/selectedZone.capacity > 0.8) ? "text-rose-500" : "text-emerald-400"
+                      )}>
+                        {selectedZone ? (selectedZone.currentCount/selectedZone.capacity > 0.8 ? 'CONGESTED' : 'NOMINAL') : 'STABLE'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 self-end w-full max-w-[140px]">
+                    <div className="p-3 bg-slate-900/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Flow Intensity</span>
+                        <ActivityIcon className="w-3 h-3 text-indigo-500" />
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+                
                 <StadiumMap 
                   state={state} 
                   onZoneClick={setSelectedZone} 
@@ -131,13 +169,13 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
                     <div className="bg-white/10 p-3 rounded-xl border border-white/5">
                       <p className="text-[9px] font-black uppercase opacity-60 tracking-widest mb-1">Density</p>
                       <p className="text-xl font-black font-mono tracking-tighter">
-                        {Math.round((selectedZone.currentCount / selectedZone.capacity) * 100)}%
+                        {Math.round(((selectedZone?.currentCount || 0) / (selectedZone?.capacity || 1)) * 100)}%
                       </p>
                     </div>
                     <div className="bg-white/10 p-3 rounded-xl border border-white/5">
                       <p className="text-[9px] font-black uppercase opacity-60 tracking-widest mb-1">Est. Wait</p>
                       <p className="text-xl font-black font-mono tracking-tighter">
-                        {state.waitTimes[selectedZone.id]?.minutes || Math.round((selectedZone.currentCount / selectedZone.capacity) * 15)}m
+                        {state?.waitTimes?.[selectedZone?.id || '']?.minutes || Math.round(((selectedZone?.currentCount || 0) / (selectedZone?.capacity || 1)) * 15)}m
                       </p>
                     </div>
                   </div>
@@ -168,7 +206,7 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
               </div>
 
               <div className="space-y-3">
-                {facilities.map(facility => (
+                {facilities?.map(facility => (
                   <div 
                     key={facility.id}
                     className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-98"
@@ -189,9 +227,9 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
                       <div className="flex items-center gap-1 justify-end">
                         <p className={cn(
                           "font-black text-sm font-mono",
-                          state.waitTimes[facility.id]?.status === 'high' ? 'text-rose-500' : 'text-emerald-500'
+                          state.waitTimes?.[facility.id]?.status === 'high' ? 'text-rose-500' : 'text-emerald-500'
                         )}>
-                          {state.waitTimes[facility.id]?.minutes || 0}m
+                          {state.waitTimes?.[facility.id]?.minutes || 0}m
                         </p>
                       </div>
                       <p className="text-[8px] uppercase font-black tracking-widest opacity-40">Wait Time</p>
@@ -234,7 +272,7 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
 
               {/* Transit Nodes */}
               <div className="space-y-4">
-                {(Object.values(state.zones) as Zone[]).filter(z => z.id === 'metro-station' || z.id.includes('parking')).map(node => (
+                {(Object.values(state?.zones || {}) as Zone[]).filter(z => z.id === 'metro-station' || z?.id?.includes?.('parking')).map(node => (
                   <div key={node.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -276,7 +314,7 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Optimized for shortest wait time</p>
                 
                 <div className="space-y-3">
-                  {sortedGates.map((gate, i) => (
+                  {sortedGates?.map((gate, i) => (
                     <div key={gate.id} className={cn(
                       "flex items-center justify-between p-3 rounded-lg border transition-all",
                       i === 0 ? "border-emerald-500/30 bg-emerald-500/5 shadow-inner" : "border-white/5 bg-white/5 opacity-60"
@@ -293,7 +331,7 @@ export const AttendeeView: React.FC<AttendeeViewProps> = ({ state, onExit }) => 
                         )} />
                       </div>
                     </div>
-                  )).slice(0, 3)}
+                  ))?.slice(0, 3)}
                 </div>
 
                 <button 

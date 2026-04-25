@@ -29,13 +29,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    stadiumService.getInitialState().then(initialState => {
-      setState(initialState);
-      setLoading(false);
-    });
-
     const unsubState = stadiumService.onStateUpdate(newState => {
       setState(newState);
+      setLoading(false);
     });
 
     const unsubAlerts = stadiumService.onAlertsUpdate(newAlerts => {
@@ -134,12 +130,12 @@ export default function App() {
                       Narendra Modi Stadium // Live Telemetry
                     </motion.div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                        <motion.h1 
                         initial={{ y: 20, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.1 }}
-                        className="text-8xl md:text-[10rem] font-black uppercase tracking-tighter text-white leading-[0.8]"
+                        className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] font-black uppercase tracking-tighter text-white leading-[0.8] whitespace-nowrap px-4 scale-[0.8] sm:scale-100"
                       >
                         ARENA<span className="text-indigo-600">FLOW</span>
                       </motion.h1>

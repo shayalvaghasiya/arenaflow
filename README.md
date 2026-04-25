@@ -15,10 +15,19 @@ ArenaFlow is a real-time venue intelligence platform optimized for the **Narendr
 - **Population Metrics**: Live counter of total stadium attendance synced via socket nodes.
 - **Wait Time Predictions**: Instant estimates for food courts, restrooms, and gate entries based on sector load.
 
-### 3. Staff & Operations Node
-- **Incident Dispatch**: Rapid reporting for medical, security, fire, and crowd congestion incidents.
-- **Command Center**: Global control for stadium-wide alerts and staff coordination.
-- **Tactical Feedback**: Direct communication line from staff nodes to the central ops terminal.
+### 3. Operations & Staff Ecosystem
+- **Command Center (Ops View)**:
+    - **Global Surveillance Map**: Interactive stadium map with live density heatmap and sector-specific telemetry.
+    - **Incident Management**: Real-time alert hub for receiving, ignoring, or resolving security/medical incidents reported from the field.
+    - **Command Actions**: Deploy reinforcements, recall all staff, or broadcast global emergency alerts.
+    - **Live Egress Ticker**: Monitor real-time "Transit Confirmation" signals from fan devices to predict gate bottlenecks.
+    - **AI Crowd Analytics**: AI-driven analysis of stadium flow with tactical proposals for load balancing.
+- **Tactical Node (Staff View)**:
+    - **Field Reporting**: Instant dispatch of Security, Medical, Fire, or Crowd emergency signals to the Ops Center.
+    - **Active Mission Logs**: Receive and confirm priority tactical orders from operations with real-time status syncing.
+    - **Geo-Presence Control**: Update deployment status manually via a list or interactively via the tactical map.
+    - **Tactical Overrides**: Manual "Open Gate" override for entry/exit points and "Lockdown" signal for sector isolation.
+    - **Live Post Monitoring**: Real-time view of current post assignments and sector crowding indicators.
 
 ### 4. Fan Intelligence (Attendee View)
 - **AI Routing Advisory**: Dynamic briefings recommending optimal exit gates based on live load balancing.

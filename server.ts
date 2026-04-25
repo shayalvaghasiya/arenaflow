@@ -383,7 +383,10 @@ async function startServer() {
     io.emit('alerts-update', alerts);
 
     // Sync to Firestore for production persistence
-    persistToFirestore();
+    // Increased interval to 10 seconds to avoid quota exhaustion
+    if (state.matchMinute % 5 === 0) {
+      persistToFirestore();
+    }
   }, 2000);
 
   // API Routes
@@ -395,8 +398,12 @@ async function startServer() {
 
   app.post('/api/analyze-crowd', express.json(), async (req, res) => {
     try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is missing');
+      }
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt = `
         You are a Stadium Operations AI. Analyze the current stadium status and provide 3 tactical recommendations.
