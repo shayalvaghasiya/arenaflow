@@ -20,7 +20,7 @@ async function startServer() {
     cors: { origin: '*' }
   });
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Ahmedabad Narendra Modi Stadium Layout Definition
   const zones: Record<string, Zone> = {
