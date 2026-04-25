@@ -1,8 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import { createServer as createViteServer } from 'vite';
 import { StadiumState, Zone, Alert } from './src/types';
 import { db } from './src/server/db';
@@ -80,55 +82,72 @@ async function startServer() {
 
   let alerts: Alert[] = [];
 
-  // Seeding/Syncing Firestore
-  const seedAndSync = async () => {
-    try {
-      console.log('Synchronizing with Firestore...');
-      const metaRef = db.collection('config').doc('stadium');
-      const metaSnap = await metaRef.get();
+  // Seeding/Syncing Firestore with Retries
+  const seedAndSync = async (retries = 3) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        console.log(`Synchronizing with Firestore (Attempt ${i + 1})...`);
+        
+        // Basic check for database connection
+        if (!db) {
+          throw new Error('Firestore database object is not initialized');
+        }
 
-      if (!metaSnap.exists) {
-        console.log('Seeding initial setup...');
-        await metaRef.set({
-          eventStatus: state.eventStatus,
-          matchMinute: state.matchMinute,
-          totalAttendees: state.totalAttendees,
-          timestamp: state.timestamp
-        });
+        const metaRef = db.collection('config').doc('stadium');
+        const metaSnap = await metaRef.get();
 
-        // Seed Zones
-        const batch = db.batch();
-        Object.values(zones).forEach(z => {
-          batch.set(db.collection('zones').doc(z.id), z);
-        });
-        // Seed Staff
-        state.staff.forEach(s => {
-          batch.set(db.collection('staff').doc(s.id), s);
-        });
-        await batch.commit();
-      } else {
-        console.log('Merging local state with Firestore...');
-        const metaData = metaSnap.data();
-        state.eventStatus = metaData?.eventStatus || state.eventStatus;
-        state.matchMinute = metaData?.matchMinute || state.matchMinute;
+        if (!metaSnap.exists) {
+          console.log('Seeding initial setup...');
+          await metaRef.set({
+            eventStatus: state.eventStatus,
+            matchMinute: state.matchMinute,
+            totalAttendees: state.totalAttendees,
+            timestamp: state.timestamp
+          });
 
-        // Load zones
-        const zonesSnap = await db.collection('zones').get();
-        zonesSnap.forEach(doc => {
-          const z = doc.data() as Zone;
-          state.zones[z.id] = z;
-        });
+          // Seed Zones
+          const batch = db.batch();
+          Object.values(zones).forEach(z => {
+            batch.set(db.collection('zones').doc(z.id), z);
+          });
+          // Seed Staff
+          state.staff.forEach(s => {
+            batch.set(db.collection('staff').doc(s.id), s);
+          });
+          await batch.commit();
+        } else {
+          console.log('Merging local state with Firestore...');
+          const metaData = metaSnap.data();
+          state.eventStatus = metaData?.eventStatus || state.eventStatus;
+          state.matchMinute = metaData?.matchMinute || state.matchMinute;
 
-        // Load staff
-        const staffSnap = await db.collection('staff').get();
-        staffSnap.forEach(doc => {
-          const s = doc.data() as any;
-          const exists = state.staff.find(st => st.id === s.id);
-          if (!exists) state.staff.push(s);
-        });
+          // Load zones
+          const zonesSnap = await db.collection('zones').get();
+          zonesSnap.forEach(doc => {
+            const z = doc.data() as Zone;
+            state.zones[z.id] = z;
+          });
+
+          // Load staff
+          const staffSnap = await db.collection('staff').get();
+          staffSnap.forEach(doc => {
+            const s = doc.data() as any;
+            const exists = state.staff.find(st => st.id === s.id);
+            if (!exists) state.staff.push(s);
+          });
+        }
+        
+        console.log('Firestore initialization successful.');
+        return; // Success, exit retry loop
+      } catch (error: any) {
+        console.error(`Attempt ${i + 1} failed:`, error.message);
+        if (i === retries - 1) {
+          console.error('CRITICAL: All Firestore sync attempts failed. Operating in LOCAL-ONLY mode.');
+        } else {
+          console.log('Retrying in 2 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
-    } catch (error) {
-      console.error('CRITICAL: seedAndSync failed but continuing with local defaults:', error);
     }
   };
 
