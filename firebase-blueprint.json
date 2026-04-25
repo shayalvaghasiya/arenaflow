@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "Zone": {
+      "title": "Zone",
+      "description": "A specific area in the stadium",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["gate", "seating", "food", "restroom", "concourse"] },
+        "capacity": { "type": "number" },
+        "currentCount": { "type": "number" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "neighbors": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "type", "capacity", "currentCount", "x", "y", "neighbors"]
+    },
+    "StaffMember": {
+      "title": "Staff Member",
+      "description": "Personnel working at the stadium",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["security", "facility", "medical"] },
+        "zoneId": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "on-break", "responding"] }
+      },
+      "required": ["id", "name", "role", "zoneId", "status"]
+    },
+    "StaffInstruction": {
+      "title": "Staff Instruction",
+      "description": "Orders dispatched to a specific staff member",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "staffId": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "acknowledged", "completed"] }
+      },
+      "required": ["id", "staffId", "message", "timestamp", "status"]
+    },
+    "WaitTime": {
+      "title": "Wait Time",
+      "description": "Queue feedback for a zone",
+      "type": "object",
+      "properties": {
+        "zoneId": { "type": "string" },
+        "minutes": { "type": "number" },
+        "status": { "type": "string", "enum": ["low", "medium", "high"] }
+      },
+      "required": ["zoneId", "minutes", "status"]
+    },
+    "StadiumMetadata": {
+      "title": "Stadium Metadata",
+      "description": "Global event state",
+      "type": "object",
+      "properties": {
+        "eventStatus": { "type": "string", "enum": ["pre-match", "ongoing", "halftime", "ending", "post-match"] },
+        "matchMinute": { "type": "number" },
+        "totalAttendees": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["eventStatus", "matchMinute", "totalAttendees", "timestamp"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "System or manual incident alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "zoneId": { "type": "string" },
+        "message": { "type": "string" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical", "incident"] },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "zoneId", "message", "severity", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/config/stadium": {
+      "schema": "StadiumMetadata",
+      "description": "Global stadium state"
+    },
+    "/zones/{zoneId}": {
+      "schema": "Zone",
+      "description": "Zone information"
+    },
+    "/staff/{staffId}": {
+      "schema": "StaffMember",
+      "description": "Staff member profile and status"
+    },
+    "/staff/{staffId}/instructions/{instructionId}": {
+      "schema": "StaffInstruction",
+      "description": "Individual task orders"
+    },
+    "/alerts/{alertId}": {
+      "schema": "Alert",
+      "description": "Global alerts and incidents"
+    },
+    "/waitTimes/{zoneId}": {
+      "schema": "WaitTime",
+      "description": "Real-time queue analytics"
+    }
+  }
+}

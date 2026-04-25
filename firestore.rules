@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Check if user is an admin
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); 
+    }
+
+    // Check if user is a specific staff member
+    function isStaff(staffId) {
+      return isSignedIn() && request.auth.uid == staffId;
+    }
+
+    // Stadium Metadata
+    match /config/stadium {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      function isValidMetadata(data) {
+        return data.eventStatus in ['pre-match', 'ongoing', 'halftime', 'ending', 'post-match'] &&
+               data.matchMinute is number &&
+               data.totalAttendees is number &&
+               data.timestamp is number;
+      }
+    }
+
+    // Connection Test
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Zones
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow create, delete: if isAdmin() && isValidId(zoneId);
+      allow update: if (isAdmin() || (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['currentCount']))) 
+                    && isValidZone(incoming());
+
+      function isValidZone(data) {
+        return data.id is string && data.id.size() <= 64 &&
+               data.name is string && data.name.size() <= 128 &&
+               data.type in ['gate', 'seating', 'food', 'restroom', 'concourse'] &&
+               data.capacity is number &&
+               data.currentCount is number &&
+               data.x is number && data.y is number &&
+               data.neighbors is list;
+      }
+    }
+
+    // Staff
+    match /staff/{staffId} {
+      allow read: if true; // Relaxed for dashboard demo
+      allow create, delete: if isAdmin() && isValidId(staffId);
+      allow update: if (isAdmin() || isStaff(staffId)) && isValidStaff(incoming());
+
+      match /instructions/{instructionId} {
+        allow read: if true; // Relaxed for dashboard demo
+        allow write: if isAdmin() || isStaff(staffId);
+      }
+
+      function isValidStaff(data) {
+        return data.id is string &&
+               data.name is string && data.name.size() <= 128 &&
+               data.role in ['security', 'facility', 'medical'] &&
+               data.zoneId is string &&
+               data.status in ['active', 'on-break', 'responding'];
+      }
+    }
+
+    // Instructions
+    match /staff/{staffId}/instructions/{instructionId} {
+      allow read: if isAdmin() || isStaff(staffId);
+      allow create: if isAdmin() && isValidId(instructionId) && isValidInstruction(incoming());
+      allow update: if (isAdmin() || (isStaff(staffId) && incoming().diff(existing()).affectedKeys().hasOnly(['status'])))
+                    && isValidInstruction(incoming());
+      
+      function isValidInstruction(data) {
+        return data.id is string &&
+               data.staffId == staffId &&
+               data.message is string && data.message.size() <= 500 &&
+               data.timestamp is number &&
+               data.status in ['pending', 'acknowledged', 'completed'];
+      }
+    }
+
+    // Alerts
+    match /alerts/{alertId} {
+      allow read: if true;
+      allow create: if (isAdmin() || isSignedIn()) && isValidId(alertId) && isValidAlert(incoming());
+      allow update: if isAdmin() && isValidAlert(incoming());
+      allow delete: if isAdmin();
+
+      function isValidAlert(data) {
+        return data.id is string &&
+               data.zoneId is string &&
+               data.message is string && data.message.size() <= 500 &&
+               data.severity in ['info', 'warning', 'critical', 'incident'] &&
+               data.timestamp is number;
+      }
+    }
+
+    // Wait Times
+    match /waitTimes/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(zoneId) && isValidWaitTime(incoming());
+
+      function isValidWaitTime(data) {
+        return data.zoneId == zoneId &&
+               data.minutes is number &&
+               data.status in ['low', 'medium', 'high'];
+      }
+    }
+
+    // Admins Collection (to bootstrap)
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via console or service account
+    }
+  }
+}
