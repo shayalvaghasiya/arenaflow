@@ -2,9 +2,7 @@
 
 **ArenaFlow** is a next-generation real-time venue intelligence platform optimized for the **Narendra Modi Stadium** in Ahmedabad. It serves as a unified digital twin, providing high-fidelity telemetry, predictive crowd analytics, and tactical command capabilities to ensure seamless flow and safety for tens of thousands of spectators.
 
-<img width="1919" height="890" alt="image" src="https://github.com/user-attachments/assets/6fb9a55a-ac07-4cb0-99ce-43bf73317afd" />
-
-
+![ArenaFlow Landing](image_0.png)
 
 ---
 
@@ -20,9 +18,7 @@ The central nervous system of the stadium. Operations staff monitor the "Global 
 *   **Key Tasks**: Incident resolution, staff dispatching, global alerts, and AI-assisted egress planning.
 *   **Workflow**: Monitors live density heatmaps -> Identifies "Critical" sectors -> Dispatches nearby Security/Medical units -> Broadcasts evacuation or rerouting instructions.
 
-<img width="1909" height="893" alt="image" src="https://github.com/user-attachments/assets/1ebdf69f-6458-4e0e-9d13-6f23990b9830" />
-<img width="1913" height="877" alt="image" src="https://github.com/user-attachments/assets/4b72f477-51a1-44a3-ab76-2dad45642b90" />
-
+![Operations Command Center](image_2.png)
 
 ### 2. Field Units (Staff View)
 Localized tactical nodes for ground personnel (Security, Medical, Facility).
@@ -34,8 +30,7 @@ A personal guidance system designed to minimize wait times and optimize the stad
 *   **Key Tasks**: Finding the fastest exits, checking restroom/food stall wait times, and receiving real-time safety updates.
 *   **Workflow**: Views current seating area density -> Gets AI-recommended exit route -> Confirms transit signal (telemetry) back to Ops -> Reaches destination via least-congested path.
 
-<img width="1909" height="880" alt="image" src="https://github.com/user-attachments/assets/edb504e8-d25d-4cd9-a506-1b3714709dd7" />
-
+![Attendee View](image_1.png)
 
 ---
 

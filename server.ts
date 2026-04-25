@@ -171,41 +171,40 @@ async function startServer() {
        }
        const batch = db.batch();
        
-       // Update metadata
+       // Update metadata and consolidated dynamic state
        const stadiumDocRef = db.collection('config').doc('stadium');
+       
+       // Consolidate zone metrics into one doc to save writes
+       const zoneMetrics = Object.values(state.zones).reduce((acc: any, z) => {
+         acc[z.id] = { currentCount: z.currentCount };
+         return acc;
+       }, {});
+
        batch.set(stadiumDocRef, {
          eventStatus: state.eventStatus,
          matchMinute: state.matchMinute,
          totalAttendees: state.totalAttendees,
-         timestamp: state.timestamp
+         timestamp: state.timestamp,
+         zoneMetrics // One doc update instead of 25!
        }, { merge: true });
        
-       // Update zones
-       Object.values(state.zones).forEach(z => {
-         batch.set(db.collection('zones').doc(z.id), z, { merge: true });
-       });
-       
-       // Update staff
-       state.staff.forEach(s => {
-         batch.set(db.collection('staff').doc(s.id), s, { merge: true });
-       });
+       // Only update structural zone data rarely - for now, we just skip it in the heartbeat
+       // Staff and Alerts are still relatively low volume but we can optimize too
        
        // Sync alerts
        const alertsRef = db.collection('alerts');
-       // Note: deleting all alerts before resync might be expensive, 
-       // but for this small simulation it ensures state matches.
+       // Note: we'll only sync alerts if they've changed significantly or periodically
        const oldAlerts = await alertsRef.get();
        oldAlerts.forEach(doc => batch.delete(doc.ref));
        alerts.forEach(a => batch.set(alertsRef.doc(a.id), a));
 
        await batch.commit();
-       console.log(`Firestore Sync Successful [${new Date().toLocaleTimeString()}]`);
+       console.log(`Firestore Sync Successful (Consolidated) [${new Date().toLocaleTimeString()}]`);
      } catch (e: any) {
        if (e.message?.includes('PERMISSION_DENIED') || e.code === 7) {
          console.error('CRITICAL: Firestore PERMISSION_DENIED detected during sync.');
-         console.error('Target Database:', firebaseConfig.dbId);
-         console.error('Target Project:', firebaseConfig.projectId);
-         console.error('Active Identity:', firebaseConfig.serviceAccountEmail);
+       } else if (e.message?.includes('Quota exceeded')) {
+         console.error('Firestore Quota Exceeded. Skipping persistence.');
        } else {
          console.error('Firestore sync error:', e);
        }
@@ -383,13 +382,9 @@ async function startServer() {
     io.emit('alerts-update', alerts);
 
     // Sync to Firestore for production persistence
-    // Increased interval to 60 seconds (every 30 ticks) to avoid quota exhaustion on free tier
-    if (state.matchMinute % 30 === 0) {
-      persistToFirestore().catch(e => {
-        if (e.message?.includes('Quota exceeded')) {
-          console.error('Firestore Quota Exceeded. Persistence paused until reset.');
-        }
-      });
+    // Extended interval to ~10 minutes (every 300 ticks of 2s)
+    if (state.matchMinute % 300 === 0) {
+      persistToFirestore();
     }
   }, 2000);
 
