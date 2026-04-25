@@ -37,6 +37,19 @@ try {
 }
 
 const dbId = process.env.VITE_FIREBASE_DATABASE_ID || '(default)';
-console.log('Connecting to Firestore Database:', dbId);
-export const db = getFirestore(app, dbId);
+console.log('Firebase Init - Config:', {
+  projectId: projectId,
+  databaseId: dbId,
+  hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+});
+
+let dbInstance;
+try {
+  dbInstance = getFirestore(app, dbId);
+} catch (e) {
+  console.warn(`Failed to init Firestore with databaseId ${dbId}, falling back to (default)`);
+  dbInstance = getFirestore(app, '(default)');
+}
+
+export const db = dbInstance;
 export const auth = admin.auth(app);
